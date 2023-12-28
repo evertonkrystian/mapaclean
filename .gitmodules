@@ -1,0 +1,56 @@
+[submodule "src/protected/application/plugins/MultipleLocalAuth"]
+	path = src/protected/application/plugins/MultipleLocalAuth
+	url = https://github.com/mapasculturais/plugin-MultipleLocalAuth
+	branch = master
+[submodule "src/protected/application/plugins/AldirBlanc"]
+	path = src/protected/application/plugins/AldirBlanc
+	url = https://github.com/govce/plugin-AldirBlanc.git
+	branch = master
+[submodule "src/protected/application/plugins/AldirBlancDataprev"]
+	path = src/protected/application/plugins/AldirBlancDataprev
+	url = https://github.com/govce/plugin-AldirBlancDataprev.git
+	branch = master
+[submodule "src/protected/application/plugins/AldirBlancValidador"]
+	path = src/protected/application/plugins/AldirBlancValidador
+	url = https://github.com/govce/plugin-AldirBlancValidador.git
+	branch = master
+[submodule "src/protected/application/plugins/AldirBlancValidadorFinanceiro"]
+	path = src/protected/application/plugins/AldirBlancValidadorFinanceiro
+	url = https://github.com/govce/plugin-AldirBlancValidadorFinanceiro.git
+	branch = master
+[submodule "src/protected/application/plugins/RegistrationPayments"]
+	path = src/protected/application/plugins/RegistrationPayments
+	url = https://github.com/govce/plugin-RegistrationPayments.git
+	branch = master
+[submodule "src/protected/application/plugins/RegistrationPaymentsAuxilio"]
+	path = src/protected/application/plugins/RegistrationPaymentsAuxilio
+	url = https://github.com/secultce/plugin-FinancialAssistance2021.git
+	branch = master
+[submodule "src/protected/application/plugins/Report"]
+	path = src/protected/application/plugins/Report
+	url = https://github.com/secultce/plugin-reports-documentary-technical.git
+	branch = master
+[submodule "src/protected/application/plugins/pwa"]
+	path = src/protected/application/plugins/pwa
+	url = https://github.com/govce/plugin-PWA.git
+	branch = master
+[submodule "src/protected/application/plugins/ChatTawkto"]
+	path = src/protected/application/plugins/ChatTawkto
+	url = https://github.com/govce/plugin-ChatTawkto.git
+	branch = master
+[submodule "src/protected/application/plugins/EvaluationMethodSeplag"]
+	path = src/protected/application/plugins/EvaluationMethodSeplag
+	url = https://github.com/secultce/plugin-EvaluationMethodSeplag.git
+	branch = master
+[submodule "src/protected/application/plugins/Accessibility"]
+	path = src/protected/application/plugins/Accessibility
+	url = https://github.com/govce/plugin-Accessibility.git
+	branch = master
+[submodule "src/protected/application/plugins/LocationStateCity"]
+	path = src/protected/application/plugins/LocationStateCity
+	url = https://github.com/secultce/plugin-LocationStateCity.git
+	branch = main
+[submodule "src/protected/application/themes/Ceara"]
+	path = src/protected/application/themes/Ceara
+	url = https://github.com/secultce/theme-Ceara.git
+	branch = master

@@ -6,7 +6,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         libfreetype6-dev libjpeg62-turbo-dev libpng-dev less vim \
         sudo
 
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
+RUN curl -sL https://deb.nodesource.com/setup_16.x | bash - \
     && apt-get install -y nodejs
 
 RUN rm -rf /var/lib/apt/lists
@@ -15,7 +15,9 @@ RUN rm -rf /var/lib/apt/lists
 RUN npm install -g \
         terser \
         uglifycss \
-        autoprefixer
+        autoprefixer \
+        pnpm \
+        jake 
 
 # Install sass
 RUN gem install sass -v 3.4.22
@@ -50,6 +52,7 @@ RUN pecl install -o -f redis \
 COPY src/index.php /var/www/html/index.php
 COPY src/protected/composer.json /var/www/html/protected/composer.json
 COPY src/protected/composer.lock /var/www/html/protected/composer.lock
+#COPY .env /.env
 
 WORKDIR /var/www/html/protected
 RUN composer.phar install
@@ -67,7 +70,7 @@ RUN find . -maxdepth 1 -mindepth 1 -exec echo "compilando sass do tema " {} \; -
 COPY src/protected /var/www/html/protected
 
 RUN mkdir -p /var/www/html/protected/DoctrineProxies
-RUN chown -R www-data: /var/www/html/protected/DoctrineProxies
+RUN chown -R www-data: /var/www/html/
 
 RUN ln -s /var/www/html/protected/application/lib/postgis-restful-web-service-framework /var/www/html/geojson
 
@@ -76,7 +79,8 @@ COPY compose/production/php.ini /usr/local/etc/php/php.ini
 COPY compose/config.php /var/www/html/protected/application/conf/config.php
 COPY compose/config.d /var/www/html/protected/application/conf/config.d
 
-RUN ln -s /var/www/html /var/www/src
+
+WORKDIR /var/www/html
 
 COPY version.txt /var/www/version.txt
 

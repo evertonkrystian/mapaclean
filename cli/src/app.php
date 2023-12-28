@@ -5,7 +5,7 @@ $_SERVER['SERVER_NAME'] = 'localhost';
 $_SERVER['SERVER_PORT'] = '8080';
 $_SERVER['REMOTE_ADDR'] = '127.0.0.1';
 
-require __DIR__ . '../../../src/protected/application/bootstrap.php';
+require '/var/www/html/protected/application/bootstrap.php';
 
 require __DIR__ . '/McCli.php';
 

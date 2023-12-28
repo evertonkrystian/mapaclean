@@ -1,0 +1,16 @@
+master;https://github.com/mapasculturais/plugin-MultipleLocalAuth;src/protected/application/plugins/MultipleLocalAuth
+master;https://github.com/govce/plugin-AldirBlanc.git;src/protected/application/plugins/AldirBlanc
+master;https://github.com/govce/plugin-AldirBlancDataprev.git;src/protected/application/plugins/AldirBlancDataprev
+master;https://github.com/govce/plugin-AldirBlancValidador.git;src/protected/application/plugins/AldirBlancValidador
+master;https://github.com/govce/plugin-AldirBlancValidadorFinanceiro.git;src/protected/application/plugins/AldirBlancValidadorFinanceiro
+master;https://github.com/govce/plugin-RegistrationPayments.git;src/protected/application/plugins/RegistrationPayments
+master;https://github.com/secultce/plugin-FinancialAssistance2021.git;src/protected/application/plugins/RegistrationPaymentsAuxilio
+master;https://github.com/secultce/Plugin-Alerta-Insrcicoes-em-Rascunho.git;src/protected/application/plugins/SendEmailUser
+master;https://github.com/secultce/plugin-reports-documentary-technical.git;src/protected/application/plugins/Report
+master;https://github.com/govce/plugin-PWA.git;src/protected/application/plugins/pwa
+master;https://github.com/govce/plugin-ChatTawkto.git;src/protected/application/plugins/ChatTawkto
+master;https://github.com/secultce/plugin-EvaluationMethodSeplag.git;src/protected/application/plugins/EvaluationMethodSeplag
+master;https://github.com/secultce/plugin-EvaluationMethodTechnical.git;src/protected/application/plugins/EvaluationMethodTechnical
+master;https://github.com/govce/plugin-Accessibility.git;src/protected/application/plugins/Accessibility
+main;https://github.com/secultce/plugin-LocationStateCity.git;src/protected/application/plugins/LocationStateCity
+master;https://github.com/secultce/theme-Ceara.git;src/protected/application/themes/Ceara
