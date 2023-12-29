@@ -15,7 +15,7 @@ services:
     #  - ./docker-data/certs/conf:/etc/letsencrypt
     #  - ./docker-data/certs/www:/var/www/certbot
     ports:
-     - "8080:80"
+     - "80:80"
      - "443:443"
     depends_on:
       - mapas
