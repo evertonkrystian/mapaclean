@@ -2,21 +2,18 @@ FROM php:7.2-cli
 
 RUN apt-get update && apt-get install -y --no-install-recommends \
         curl libcurl4-gnutls-dev locales imagemagick libmagickcore-dev libmagickwand-dev zip \
-        ruby ruby-dev libpq-dev gnupg nano iputils-ping git \
-        libfreetype6-dev libjpeg62-turbo-dev libpng-dev less vim \
-        sudo
+        ruby ruby-dev libpq-dev gnupg \
+        libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
 
-RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
-    && apt-get install -y nodejs
-
-RUN rm -rf /var/lib/apt/lists
-
+    && RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
+    && apt-get install -y nodejs \
+    && rm -rf /var/lib/apt/lists
 # Install uglify and terser
-RUN npm install -g \
+    && npm install -g \
         terser \
         uglifycss \
-        autoprefixer
-
+        autoprefixer \
+        jake
 # Install sass
 RUN gem install sass -v 3.4.22
 
@@ -64,42 +61,37 @@ COPY src/index.php /var/www/html/index.php
 COPY src/protected/composer.json /var/www/html/protected/composer.json
 COPY src/protected/composer.lock /var/www/html/protected/composer.lock
 
-WORKDIR /var/www/html/protected
-RUN composer.phar install
-
-RUN mkdir -p /var/www/html/protected/vendor /var/www/.composer && \
-    chown -R www-data:www-data /var/www/html/protected/vendor /var/www/.composer
-
-
 COPY src/protected/application/themes /var/www/html/protected/application/themes
-
-WORKDIR /var/www/html/protected/application/themes/
-
-RUN find . -maxdepth 1 -mindepth 1 -exec echo "compilando sass do tema " {} \; -exec sass {}/assets/css/sass/main.scss {}/assets/css/main.css -E "UTF-8" \;
-
 COPY src/protected /var/www/html/protected
-
-RUN mkdir -p /var/www/html/protected/DoctrineProxies
-RUN chown -R www-data: /var/www/html/protected/DoctrineProxies
-
-RUN ln -s /var/www/html/protected/application/lib/postgis-restful-web-service-framework /var/www/html/geojson
-
 COPY scripts /var/www/scripts
 COPY compose/local/php.ini /usr/local/etc/php/php.ini
 COPY compose/config.php /var/www/html/protected/application/conf/config.php
 COPY compose/config.d /var/www/html/protected/application/conf/config.d
-RUN mkdir /var/www/SaaS
-
-RUN ln -s /var/www/html /var/www/src
 
 COPY src/router.php /var/www/html/router.php
-RUN echo "php -S 0.0.0.0:8001 -t /var/www/html /var/www/html/router.php" > /mapas.sh && chmod +x /mapas.sh
-
-COPY version.txt /var/www/version.txt
 
 COPY compose/recreate-pending-pcache-cron.sh /recreate-pending-pcache-cron.sh
 COPY compose/jobs-cron.sh /jobs-cron.sh
 COPY compose/entrypoint.sh /entrypoint.sh
+
+COPY version.txt /var/www/version.txt
+
+RUN mkdir -p /var/www/html/protected/DoctrineProxies
+RUN mkdir /var/www/SaaS
+RUN mkdir -p /var/www/html/protected/vendor
+
+WORKDIR /var/www/html/protected
+RUN composer.phar install
+
+WORKDIR /var/www/html/protected/application/themes/
+RUN find . -maxdepth 1 -mindepth 1 -exec echo "compilando sass do tema " {} \; -exec sass {}/assets/css/sass/main.scss {}/assets/css/main.css -E "UTF-8" \;
+
+RUN chown -R www-data:www-data /var/www/html/
+
+RUN ln -s /var/www/html/protected/application/lib/postgis-restful-web-service-framework /var/www/html/geojson
+
+RUN echo "php -S 0.0.0.0:8001 -t /var/www/html /var/www/html/router.php" > /mapas.sh && chmod +x /mapas.sh
+
 ENTRYPOINT ["/entrypoint.sh"]
 
 WORKDIR /var/www/html/
