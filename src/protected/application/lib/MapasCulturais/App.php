@@ -1632,16 +1632,33 @@ class App extends \Slim\Slim{
      **********************************************/
 
     /**
+     * Enfileira um job, substituindo um já existente
      * 
      * @param string $type_slug 
      * @param array $data 
      * @param string $start_string 
      * @param string $interval_string 
      * @param int $iterations 
+     * @return void 
+     * @throws Exception 
+     */
+    public function enqueueOrReplaceJob(string $type_slug, array $data, string $start_string = 'now', string $interval_string = '', int $iterations = 1) {
+        $this->enqueueJob($type_slug, $data, $start_string, $interval_string, $iterations, true);
+    }
+
+    
+    /**
+     * Enfileira um job
+     * @param string $type_slug 
+     * @param array $data 
+     * @param string $start_string 
+     * @param string $interval_string 
+     * @param int $iterations 
+     * @param bool $replace
      * @return Job 
      * @throws Exception 
      */
-    public function enqueueJob(string $type_slug, array $data, string $start_string = 'now', string $interval_string = '', int $iterations = 1) {
+    public function enqueueJob(string $type_slug, array $data, string $start_string = 'now', string $interval_string = '', int $iterations = 1, $replace = false) {
         if($this->config['app.log.jobs']) {
             $this->log->debug("ENQUEUED JOB: $type_slug");
         }
@@ -1656,7 +1673,11 @@ class App extends \Slim\Slim{
 
         if ($job = $this->repo('Job')->find($id)) {
             $this->log->debug('JOB ID JÁ EXISTE: ' . $id);
-            return $job;
+            if ($replace) {
+                $job->delete(true);
+            } else {
+                return $job;
+            }
         }
 
         $job = new Job($type);
@@ -1709,28 +1730,58 @@ class App extends \Slim\Slim{
     /**********************************************
      * Permissions Cache
      **********************************************/
-    private $permissionCachePendingQueue = [];
 
-    public function enqueueEntityToPCacheRecreation(Entity $entity){
+    private $_permissionCachePendingQueue = [];
+    private $_recreatedPermissionCacheList = [];
+
+    /**
+     * Adiciona a entidade na fila de reprocessamento de cache de permissão 
+     * @param Entity $entity 
+     * @return void 
+     */
+    public function enqueueEntityToPCacheRecreation(Entity $entity, User $user = null) {
         if (!$entity->__skipQueuingPCacheRecreation) {
-            $entity_key = $entity->id ? "$entity" : "$entity".spl_object_id($entity);
-            $this->permissionCachePendingQueue["$entity_key"] = $entity;
+            $entity_key = $entity->id ? "{$entity}" : "{$entity}:".spl_object_id($entity);
+            if($user) {
+                $entity_key = "{$entity_key}:{$user->id}";
+            }
+            $this->_permissionCachePendingQueue[$entity_key] = [$entity, $user];
         }
     }
 
-    public function isEntityEnqueuedToPCacheRecreation(Entity $entity){
-        return isset($this->permissionCachePendingQueue["$entity"]);
+    /**
+     * Verifica se a entidade já está na fila de reprocessamento de cache de permissão
+     * 
+     * @param Entity $entity 
+     * @return bool 
+     */
+    public function isEntityEnqueuedToPCacheRecreation(Entity $entity, User $user = null) {
+        $entity_key = $entity->id ? "{$entity}" : "{$entity}:".spl_object_id($entity);
+        if($user) {
+            $entity_key = "{$entity_key}:{$user->id}";
+        }
+
+        return isset($this->_permissionCachePendingQueue[$entity_key]);
     }
 
-    public function persistPCachePendingQueue(){
+    /**
+     * Persiste a fila de entidades para reprocessamento de cache de permissão
+     */
+    public function persistPCachePendingQueue() {
         $created = false;
-        foreach($this->permissionCachePendingQueue as $entity) {
+        foreach($this->_permissionCachePendingQueue as $config) {
+            $entity = $config[0];
+            $user = $config[1];
             if (is_int($entity->id) && !$this->repo('PermissionCachePending')->findBy([
-                    'objectId' => $entity->id, 'objectType' => $entity->getClassName()
+                    'objectId' => $entity->id, 
+                    'objectType' => $entity->getClassName(),
+                    'status' => 0,
+                    'user' => $user
                 ])) {
                 $pendingCache = new \MapasCulturais\Entities\PermissionCachePending();
                 $pendingCache->objectId = $entity->id;
                 $pendingCache->objectType = $entity->getClassName();
+                $pendingCache->user = $user;
                 $pendingCache->save(true);
                 $this->log->debug("pcache pending: $entity");
                 $created = true;
@@ -1741,35 +1792,38 @@ class App extends \Slim\Slim{
             $this->em->flush();
         }
 
-        $this->permissionCachePendingQueue = [];
+        $this->_permissionCachePendingQueue = [];
+    }
+    
+    public function setEntityPermissionCacheAsRecreated(Entity $entity) {
+        $this->_recreatedPermissionCacheList["$entity"] = $entity;
     }
 
-    public function setCurrentSubsiteId(int $subsite_id = null) {
-        if(is_null($subsite_id)) {
-            $this->_subsite = null;
-        } else {
-            $subsite = $this->repo('Subsite')->find($subsite_id);
-
-            if(!$subsite) {
-                throw new \Exception('Subsite not found');
-            }
-
-            $this->_subsite = $subsite;
-        }
+    public function isEntityPermissionCacheRecreated(Entity $entity) {
+        return isset($this->_recreatedPermissionCacheList["$entity"]);
     }
 
-    private $recreatedPermissionCacheList = [];
-
-    public function setEntityPermissionCacheAsRecreated(Entity $entity){
-        $this->recreatedPermissionCacheList["$entity"] = $entity;
-    }
-
-    public function isEntityPermissionCacheRecreated(Entity $entity){
-        return isset($this->recreatedPermissionCacheList["$entity"]);
-    }
-
+    /**
+     * Processa a primeira entidade da fila de reprocessamento de cache de permissão
+     */
     public function recreatePermissionsCache(){
-        $item = $this->repo('PermissionCachePending')->findOneBy(['status' => 0], ['id' => 'ASC']);
+        $conn = $this->em->getConnection();
+
+        $id = $conn->fetchOne('
+            SELECT id 
+            FROM permission_cache_pending
+            WHERE 
+                status = 0 AND 
+                CONCAT (object_type, object_id, usr_id) NOT IN (
+                    SELECT CONCAT(object_type, object_id, usr_id) 
+                    FROM permission_cache_pending WHERE 
+                    status > 0
+                )');
+
+        if(!$id) { 
+            return;
+        }
+        $item = $this->repo('PermissionCachePending')->find($id);
         if ($item) {
             $start_time = microtime(true);
 
@@ -1781,7 +1835,7 @@ class App extends \Slim\Slim{
             try {
                 $entity = $this->repo($item->objectType)->find($item->objectId);
                 if ($entity) {
-                    $entity->recreatePermissionCache();
+                    $entity->recreatePermissionCache($item->user ? [$item->user] : null);
                 }
                 $item = $this->repo('PermissionCachePending')->find($item->id);
                 $this->em->remove($item);
@@ -1805,7 +1859,7 @@ class App extends \Slim\Slim{
 
                 $this->log->info("PCACHE RECREATED FOR $item IN {$total_time} seconds\n--------\n");
             }
-            $this->permissionCachePendingQueue = [];
+            $this->_permissionCachePendingQueue = [];
         }
     }
 

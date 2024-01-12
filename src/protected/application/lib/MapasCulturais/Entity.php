@@ -323,6 +323,9 @@ abstract class Entity implements \JsonSerializable{
 
         $app->applyHookBoundTo($this, "{$hook_prefix}.setStatus({$status})", [&$status]);
 
+        if($this->usesPermissionCache() && !$this->__skipQueuingPCacheRecreation) {
+            $this->enqueueToPCacheRecreation();
+        }
         $this->status = $status;
     }
 
@@ -523,6 +526,25 @@ abstract class Entity implements \JsonSerializable{
 
         return $label;
     }
+
+    private static $__permissions = [];
+
+    static function getPermissionsList() {
+        $class_name = self::getClassName();
+        if (!isset(self::$__permissions[$class_name])) {
+            $permissions = ['@control'];
+            foreach (get_class_methods($class_name) as $method) {
+                if (strpos($method, 'canUser') === 0 && $method != 'canUser') {
+                    $permissions[] = lcfirst(substr($method, 7));
+                }
+            }
+
+            self::$__permissions[$class_name] = $permissions;
+        }
+
+        return self::$__permissions[$class_name];
+    }
+
 
     /**
      * Returns the metadata of this entity properties.
@@ -1076,14 +1098,6 @@ abstract class Entity implements \JsonSerializable{
 
         $app->applyHookBoundTo($this, "{$hook_prefix}.insert:before", $args);
         $app->applyHookBoundTo($this, "{$hook_prefix}.save:before", $args);
-
-
-        if($this->usesPermissionCache() && !$this->__skipQueuingPCacheRecreation){
-            if($this->usesAgentRelation()){
-                $this->deleteUsersWithControlCache();
-            }
-            $this->enqueueToPCacheRecreation();
-        }
     }
 
     /**
@@ -1132,14 +1146,6 @@ abstract class Entity implements \JsonSerializable{
         $hook_prefix = $this->getHookPrefix();
 
         $app->applyHookBoundTo($this, "{$hook_prefix}.remove:before", $args);
-
-
-        if($this->usesPermissionCache() && !$this->__skipQueuingPCacheRecreation){
-            if($this->usesAgentRelation()){
-                $this->deleteUsersWithControlCache();
-            }
-            $this->enqueueToPCacheRecreation();
-        }
     }
 
     /**
@@ -1196,33 +1202,6 @@ abstract class Entity implements \JsonSerializable{
 
         if (property_exists($this, 'updateTimestamp')) {
             $this->updateTimestamp = new \DateTime;
-            /* @TODO: verificar o pq do código abaixo:
-            if($this->sentNotification){
-                $entity = $this;
-                $nid = $this->sentNotification;
-                $app->hook('entity(' . $hook_class_path . ').update:after', function() use($app, $entity, $nid) {
-                    if($this->equals($entity) && $app->user->equals($this->getOwnerUser())){
-                        // $app->log->debug("notification id: $nid");
-                        $notification = $app->repo('Notification')->find($nid);
-                        if($notification){
-                            $notification->delete();
-                            $this->sentNotification = 0;
-
-                            // as duas linhas abaixo não devem ficar aqui:
-                            // $this->save();
-                            // $app->em->flush();
-                        }
-                    }
-                });
-            }
-             */
-        }
-
-        if($this->usesPermissionCache() && !$this->__skipQueuingPCacheRecreation){
-            if($this->usesAgentRelation()){
-                $this->deleteUsersWithControlCache();
-            }
-            $this->enqueueToPCacheRecreation();
         }
     }
 

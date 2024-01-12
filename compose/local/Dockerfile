@@ -5,6 +5,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         ruby ruby-dev libpq-dev gnupg \
         libfreetype6-dev libjpeg62-turbo-dev libpng-dev \
 
+
     && RUN curl -sL https://deb.nodesource.com/setup_14.x | bash - \
     && apt-get install -y nodejs \
     && rm -rf /var/lib/apt/lists

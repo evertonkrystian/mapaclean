@@ -543,6 +543,8 @@ class Registration extends \MapasCulturais\Entity
         } else {
             throw new \Exception('Invalid __valuersExceptionsList format');
         }
+
+        $this->enqueueToPCacheRecreation();
     }
 
     function setValuersExcludeList(array $user_ids){
@@ -879,7 +881,7 @@ class Registration extends \MapasCulturais\Entity
             $field_name = $field_prefix . $field->id;
             $field_required = $field->required;
             
-            if($metadata_definition->config['registrationFieldConfiguration']->conditional){
+            if($metadata_definition && $metadata_definition->config && $metadata_definition->config['registrationFieldConfiguration'] && $metadata_definition->config['registrationFieldConfiguration']->conditional){
                 $conf =  $metadata_definition->config['registrationFieldConfiguration'];
               
                 $_fied_name = $conf->conditionalField;
@@ -1190,7 +1192,12 @@ class Registration extends \MapasCulturais\Entity
         if($this->status <= 0 || $user->is('guest')) {
             return false;
         }
+
         $app = App::i();
+
+        if ($this->opportunity->canUser('@control', $user)) {
+            return true;
+        }
 
         $can = $this->getEvaluationMethod()->canUserEvaluateRegistration($this, $user);
 

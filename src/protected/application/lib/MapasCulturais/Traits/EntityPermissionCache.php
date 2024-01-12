@@ -11,7 +11,6 @@ use MapasCulturais\Entity;
 trait EntityPermissionCache {
     public $__skipQueuingPCacheRecreation = false;
 
-    private static $__permissions = [];
     private $__enabled = true;
 
     public static function usesPermissionCache() {
@@ -35,22 +34,6 @@ trait EntityPermissionCache {
 
         return false;
     }
-
-    function getPermissionsList() {
-        $class_name = $this->getClassName();
-        if (!isset(self::$__permissions[$class_name])) {
-            $permissions = ['@control'];
-            foreach (get_class_methods($class_name) as $method) {
-                if (strpos($method, 'canUser') === 0 && $method != 'canUser') {
-                    $permissions[] = lcfirst(substr($method, 7));
-                }
-            }
-
-            self::$__permissions[$class_name] = $permissions;
-        }
-
-        return self::$__permissions[$class_name];
-    }
     
     function getPCacheObjectType(){
         $class_name = $this->getClassName();
@@ -62,7 +45,16 @@ trait EntityPermissionCache {
         return $class_name;
     }
     
-    function createPermissionsCacheForUsers($users = null, $flush = false, $delete_old = true) {
+    static protected $createdPermissionCache = [];
+
+    function createPermissionsCacheForUsers(array $users = null, $flush = false, $delete_old = true) {
+
+        if(self::$createdPermissionCache["$this"] ?? false) {
+            return;
+        } else {
+            self::$createdPermissionCache["$this"] = true;
+        }
+
         $app = App::i();
         if($this->getEntityState() !== 2){
             $this->refresh();
@@ -77,13 +69,7 @@ trait EntityPermissionCache {
             $app->log->debug("RECREATING pcache FOR $this");
         }
         
-        $deleted = false;
         if(is_null($users)){
-            if($delete_old){
-                $deleted = true;
-                $this->deletePermissionsCache();
-            }
-            
             if($this->usesAgentRelation()){
                 $users = $this->getUsersWithControl();
             } else if($this->owner) {
@@ -95,8 +81,19 @@ trait EntityPermissionCache {
             if(method_exists($this, 'getExtraPermissionCacheUsers')){
                 $users = array_merge($users, $this->getExtraPermissionCacheUsers());
             }
+
+            if($roles = $app->repo("Role")->findAll()){
+                foreach($roles as $role){
+                    $users[] = $role->user;
+                }
+            }
+            
+            $app->applyHookBoundTo($this, "{$this->hookPrefix}.permissionCacheUsers", [&$users]);
         }
-        $app->applyHookBoundTo($this, "{$this->hookPrefix}.permissionCacheUsers", [&$users]);
+        
+        if($delete_old && $users){
+            $this->deletePermissionsCache($users);
+        }
 
         $conn = $app->em->getConnection();
         $class_name = $this->getPCacheObjectType();
@@ -110,10 +107,11 @@ trait EntityPermissionCache {
         $users = array_unique($users);
 
         foreach ($users as $user) {
-            if($user->is('guest')){
+            if (is_null($user)) {
                 continue;
             }
-            if (is_null($user)) {
+
+            if($user->is('guest')){
                 continue;
             }
 
@@ -127,13 +125,10 @@ trait EntityPermissionCache {
                 continue;
             }
 
-            if($delete_old && !$deleted){
-                $this->deletePermissionsCache();
-            }
             $allowed_permissions = [];
 
             foreach ($permissions as $permission) {
-                if($permission === 'view' && $isStatusNotDraft && !$isPrivateEntity && !$hasCanUserViewMethod) {
+                if($permission === '_control' || $permission === 'view' && $isStatusNotDraft && !$isPrivateEntity && !$hasCanUserViewMethod) {
                     continue;
                 }
 
@@ -165,23 +160,44 @@ trait EntityPermissionCache {
         $this->__enabled = true;
     }
     
-    function deletePermissionsCache(){
+    function deletePermissionsCache($users = null){
         $app = App::i();
         $conn = $app->em->getConnection();
         $class_name = $this->getPCacheObjectType();
         if(!$this->id){
             return;
         }
-        $conn->executeQuery("DELETE FROM pcache WHERE object_type = '{$class_name}' AND object_id = {$this->id}");
+        
+        $complement = "";
+        if($users){
+            $users_ids = implode(',', array_map(function($user) { return $user->id; }, $users));
+            $complement.="AND user_id IN ({$users_ids})";
+        }
+
+        $conn->executeQuery("DELETE FROM pcache WHERE object_type = '{$class_name}' AND object_id = {$this->id} {$complement}");
     }
        
-    function enqueueToPCacheRecreation($skip_extra = false){
+    function enqueueToPCacheRecreation(array $users = []){
         $app = App::i();
-        if($app->isEntityEnqueuedToPCacheRecreation($this) || $this->__skipQueuingPCacheRecreation){
-            return false;
+        if($users) {
+            foreach($users as $user) {
+                if($app->isEntityEnqueuedToPCacheRecreation($this, $user) || $this->__skipQueuingPCacheRecreation){
+                    return false;
+                }
+                
+                $app->enqueueEntityToPCacheRecreation($this, $user);
+            }
+        } else {
+            if($app->isEntityEnqueuedToPCacheRecreation($this) || $this->__skipQueuingPCacheRecreation){
+                return false;
+            }
+            
+            $app->enqueueEntityToPCacheRecreation($this);
         }
-        
-        $app->enqueueEntityToPCacheRecreation($this);
+
+        if($this->usesAgentRelation()){
+            $this->deleteUsersWithControlCache();
+        }
 
         return true;
     }
@@ -203,8 +219,6 @@ trait EntityPermissionCache {
         $self = $this;
 
         $app->setEntityPermissionCacheAsRecreated($self);
-
-
 
         $conn = $app->em->getConnection();
         $conn->beginTransaction();

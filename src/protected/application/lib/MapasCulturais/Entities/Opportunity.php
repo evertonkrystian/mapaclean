@@ -392,13 +392,6 @@ abstract class Opportunity extends \MapasCulturais\Entity
 
     function getExtraPermissionCacheUsers(){
         $users = [];
-        if($this->publishedRegistrations) {
-            $registrations = App::i()->repo('Registration')->findBy(['opportunity' => $this, 'status' => Registration::STATUS_APPROVED]);
-            $r = new Registration;
-            foreach($registrations as $r){
-                $users = array_merge($users, $r->getUsersWithControl());
-            }
-        }
         
         if($this->evaluationMethodConfiguration){
             $users = array_merge($users, $this->evaluationMethodConfiguration->getUsersWithControl());
@@ -656,6 +649,8 @@ abstract class Opportunity extends \MapasCulturais\Entity
                 $newField->config = $field->config;
                 $newField->fieldOptions = $field->fieldOptions;
                 $newField->displayOrder = $field->displayOrder;
+                $newField->conditional = $field->conditional;
+                $newField->conditionalValue = $field->conditionalValue;
 
                 $field->newField = $newField;
 
@@ -669,13 +664,12 @@ abstract class Opportunity extends \MapasCulturais\Entity
 
             foreach($importSource->fields as &$field) {
                 $newField = $field->newField;
-                if(!empty($field->config['require']['field'])){
-                    $field_name = $field->config['require']['field'];
+                if(!empty($field->conditionalField)){
+                    $field_name = $field->conditionalField;
 
                     if(isset($new_fields_by_old_field_name[$field_name])) {
-                        $field->config['require']['field'] = $new_fields_by_old_field_name[$field_name]->fieldName;
-                        
-                        $newField->config = $field->config;
+
+                        $newField->conditionalField = $new_fields_by_old_field_name[$field_name]->fieldName;
 
                         // salva a segunda vez para a tualizar o config
                         $newField->save();
@@ -696,8 +690,12 @@ abstract class Opportunity extends \MapasCulturais\Entity
                 $newFile->required = $file->required;
                 $newFile->categories = $file->categories;
                 $newFile->displayOrder = $file->displayOrder;
+                $newFile->conditional = $file->conditional;
+                $newFile->conditionalValue = $file->conditionalValue;
 
                 $app->em->persist($newFile);
+
+                $file->newFile = $newFile;
 
                 $newFile->save();
 
@@ -737,6 +735,23 @@ abstract class Opportunity extends \MapasCulturais\Entity
                     }
 
                 }
+            }
+
+            foreach($importSource->files as &$file) {
+                $newFile = $file->newFile;
+                if(!empty($file->conditionalField)){
+                    $field_name = $file->conditionalField;
+
+                    if(isset($new_fields_by_old_field_name[$field_name])) {
+
+                        $newFile->conditionalField = $new_fields_by_old_field_name[$field_name]->fieldName;
+
+                        // salva a segunda vez para a tualizar a condicional
+                        $newFile->save();
+                    }
+                    
+                }
+
             }
 
             // Metadata
@@ -900,22 +915,10 @@ abstract class Opportunity extends \MapasCulturais\Entity
 
     protected function canUserSendUserEvaluations($user){
         $can_evaluate = $this->canUserEvaluateRegistrations($user);
-        
-        $today = new \DateTime('now');
-        $registrations = $this->getSentRegistrations();
 
-        $evaluations_ok = (($today >= $this->registrationTo) && $registrations) ? true : false;
-        foreach($registrations as $reg){
-            if($reg->canUser('evaluate')){
-                $evaluation = $reg->getUserEvaluation($user);
-                if(is_null($evaluation) || $evaluation->status != RegistrationEvaluation::STATUS_EVALUATED){
-                    $evaluations_ok = false;
-                    break;
-                }
-            }
-        }
+        $today = new \DateTime('now');
         
-        return $can_evaluate && $evaluations_ok;
+        return $can_evaluate && $today >= $this->registrationTo;
     }
 
     protected function canUserEvaluateRegistrations($user){

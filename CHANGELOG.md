@@ -4,18 +4,82 @@ Todas as mudanças notáveis no projeto serão documentadas neste arquivo.
 O formato é baseado no [Keep a Changelog](https://keepachangelog.com/pt-BR/1.0.0/)
 e este projeto adere ao [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [5.8.12] - 2023-12-14
+### Correções 
+- Corrige permissão para que gestores não administradores do sistema modifiquem avaliação após a fase ser publicada
+
+## [5.8.11] - 2023-12-13
+### Correções 
+- Corrige permissão para que gestores modifiquem avaliação após a fase ser publicada
+
+## [5.8.10] - 2023-12-12
+### Correções 
+- Corrige exibição de formulário das avaliações dos avaliadores para o gestor
+
+## [5.8.9] - 2023-12-05
+### Correções
+- Corrige erro no processamento de campos de tadas informados no formulário de inscrição
+
+## ['5.8.8'] - 2023-11-29
+- Garante que o $entity seja carregado corretamente pegando a entidade carregada na tela no header single da inscrição
+
+## ['5.8.7'] - 2023-11-04
+- Evita que as politicas afirmativas possam ser salvas de forma parcial
+
+## ['5.8.6'] - 2023-11-04
+- Ajusta formato da data na população do front end da inscrição
+
+## [5.8.5] - 2023-11-03
+- Ajusta o deletePermissionsCache para evitar que o mesmo quebre caso não tenha uma lista de users passada
+
+## [5.8.4] - 2023-10-18
+### Melhorias não funcionais
+- Novos hooks na tela de configuração de avaliadores
+
+## [5.8.3] - 2023-10-18
+### Correções
+- Corrige a configuração manual dos avaliadores de uma inscrição pelos checkboxes na ficha de inscrição
+
+## [5.8.1] - 2023-10-18
+### Correções
+- Corrige a distribuição de inscrições entre os avaliadores
+
+## [5.8.0] - 2023-10-17
+### Melhorias
+- Impede que o número de processos de geração de cache e de jobs ultrapasse o número de processadores disponíveis
+- Refatoração na criação dos pcache, processando somente para os usuários envolvidos
+- Melhoria de performance na distribuição de inscrições entre os avaliadores
+
+## [5.7.6] - 2023-09-12
+### Melhorias
+-  Permite que a busca de agentes no gerenciador de usuários faça busca pelo nomeCompleto, nomeSocial, CPF e agentes ainda em rascunho
+
+## [5.7.5] - 2023-08-28
+### Correções
+- Cria mc-update para atualizar dados legados para a nova estrutura de condicionalidade de campos
+- Corrige importação de formularios para interpretar a nova estrutura de condicionalidade de campos
+
+## [5.7.4] - 2023-08-24
+### Melhorias
+- atualização das bibliotecas PHP para as últimas versões compatíveis com o PHP 7.2
+
+## [5.7.3] - 2023-08-23
+### Correções
+- Corrige a altura dos gráficos de linha do módulo de relatorios das oportunidades
+
 ## [5.7.1] - 2023-07-21
-## Correções
+### Correções
 - Ajusta CSS do sidebar direito para evitar que o header sobrescreva os conteúdos dos editbox
 
 ## [5.7.0] - 2023-07-13
-## Novas Funcionalidades
+### Novas Funcionalidades
 - Implementa novo método de avaliação EvaluationMethodQualification
 - Implementa opção para condicionar campos do tipo a nexos
-## Melhorias
+### Melhorias
 - Ajusta definição de cores na listagem de avaliações na tela do avaliador nos métodos simples e documental
 - Ajusta estrutura de condicionalidade de campo criando colunas específicas na tabela registration_field_configuration
 - Não obriga mais um campos ser obrigatorio para ser condicionado a outro campo
+
 ## [5.6.21] - 2023-07-13
 ### Melhorias
 - Faz refatorações para que o módulo de relatório busque campo da fase em questão e tambem fases anteriores

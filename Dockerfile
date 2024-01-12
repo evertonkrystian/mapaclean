@@ -7,6 +7,7 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
         curl -sL https://deb.nodesource.com/setup_16.x | bash - && apt-get install -y nodejs  && \
         rm -rf /var/lib/apt/lists
 
+
 # Install uglify and terser
 RUN npm install -g \
         terser \
